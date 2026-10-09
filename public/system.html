@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site · Mini SMPS</title>
+    <script>
+        try {
+            document.documentElement.dataset.theme = localStorage.getItem('smps.theme') === 'dark' ? 'dark' : 'light';
+            if (!sessionStorage.getItem('smps.token') && !localStorage.getItem('smps.token')) location.replace('login.html?next=' + encodeURIComponent('system.html' + location.search));
+        } catch (e) { }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body>
+    <header class="appbar">
+        <a class="brand" href="index.html" title="All sites"><span class="brand-name" data-brand="company">Power Smart</span><span class="brand-sub">Telecom SMPS</span></a>
+        <div class="appbar-info">
+            <span id="h-site">--</span>
+            <span id="h-fw">Firmware --</span>
+            <span>SNMP v2c</span>
+            <span id="h-update">Last Update: --:--:--</span>
+        </div>
+        <div class="appbar-actions">
+            <span class="conn wait" id="h-conn"><span class="dot"></span><span id="h-conn-t">Connecting</span></span>
+            <button class="btn btn-record" id="record-btn" title="Record every polled value to a CSV file while this page is open">
+                <ion-icon name="radio-button-on"></ion-icon><span id="record-t">Record</span>
+            </button>
+            <button class="icon-btn" data-theme-toggle title="Toggle light/dark theme" aria-label="Toggle light/dark theme"><ion-icon name="moon-outline"></ion-icon></button>
+            <button class="icon-btn" data-logout title="Log out" aria-label="Log out"><ion-icon name="log-out-outline"></ion-icon></button>
+        </div>
+    </header>
+
+    <div class="shell">
+        <nav class="sidenav" aria-label="Site sections">
+            <a class="nav-item nav-back" href="index.html"><ion-icon name="arrow-back"></ion-icon>All sites</a>
+            <div class="nav-sep"></div>
+            <button class="nav-item active" data-tab="overview"><ion-icon name="home-outline"></ion-icon>Dashboard</button>
+            <button class="nav-item" data-tab="control"><ion-icon name="options-outline"></ion-icon>Control</button>
+            <button class="nav-item" data-tab="battery"><ion-icon name="battery-half-outline"></ion-icon>Battery</button>
+            <button class="nav-item" data-tab="rectifier"><ion-icon name="flash-outline"></ion-icon>Rectifier</button>
+            <button class="nav-item" data-tab="alarms"><ion-icon name="warning-outline"></ion-icon>Alarms<span class="count hidden" id="tab-alarm-count"></span></button>
+            <button class="nav-item" data-tab="diagnostics"><ion-icon name="document-text-outline"></ion-icon>Diagnostics</button>
+            <div class="side-status">
+                <div class="row"><span class="dot" id="live-bms"></span><span>BMS</span><span id="live-bms-t">--</span></div>
+                <div class="row"><span class="dot" id="live-rect"></span><span>Rectifier</span><span id="live-rect-t">--</span></div>
+                <div class="row"><span class="dot" id="live-mains"></span><span>AC mains</span><span id="live-mains-t">--</span></div>
+                <div id="conn-detail">--</div>
+            </div>
+        </nav>
+
+        <main class="content">
+            <div class="page-title"><h1 id="site-name">Loading...</h1><span class="sub" id="site-sub"></span></div>
+            <div class="banner hidden" id="stale-banner"><ion-icon name="cloud-offline-outline"></ion-icon><span id="stale-text"></span></div>
+
+            <!-- DASHBOARD (same layout as the CAN GUI) -->
+            <section class="tab-pane" id="tab-overview">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="stats" id="ov-stats"></div>
+
+                    <div class="grid grid-ov">
+                        <div class="card">
+                            <div class="card-head"><h2>System overview</h2></div>
+                            <div class="sys-overview">
+                                <picture>
+                                    <source srcset="img/mini-smps.webp" type="image/webp">
+                                    <img class="sys-photo" src="img/mini-smps.png" alt="Mini SMPS outdoor enclosure" width="640" height="583">
+                                </picture>
+                                <div class="sys-facts">
+                                    <div class="k">Operating state</div>
+                                    <div class="v tone-text" id="s-state">--</div>
+                                    <div class="k">Power source</div>
+                                    <div class="v tone-text" id="s-source">--</div>
+                                    <div class="k">Est. backup</div>
+                                    <div class="v small" id="s-backup">--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-head"><h2>System status</h2></div>
+                            <div class="status-list" id="s-status"></div>
+                            <div class="status-foot" id="s-status-foot"></div>
+                        </div>
+
+                        <div class="card" style="display:flex;flex-direction:column">
+                            <div class="card-head"><h2>Active alarms</h2><span class="right"><span class="badge-count" id="o-alarm-count">0</span></span></div>
+                            <div class="alarm-list" id="o-alarms"></div>
+                            <a class="view-all" href="#alarms" data-goto="alarms" style="margin-top:auto;padding-top:8px">View All Alarms &rarr;</a>
+                        </div>
+                    </div>
+
+                    <div class="trends" id="trends-main"></div>
+                    <div class="trends" id="trends-more"></div>
+
+                    <div class="footer-bar">
+                        <span>&copy; 2026 <span data-brand="company">Power Smart</span> · one trend point every <span id="sample-s">30</span> s, kept 24 h on the dashboard server</span>
+                        <div class="right">
+                            <div class="range" role="group" aria-label="Trend range">
+                                <button class="active" data-range="1">1H</button>
+                                <button data-range="6">6H</button>
+                                <button data-range="12">12H</button>
+                                <button data-range="24">24H</button>
+                            </div>
+                            <button class="btn btn-sm" id="export-csv"><ion-icon name="download-outline"></ion-icon>Export CSV</button>
+                            <label style="display:inline-flex;align-items:center;gap:8px">Auto Refresh
+                                <span class="switch"><input type="checkbox" id="auto-refresh" checked><span></span></span></label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONTROL: load outputs (eFuses), relays, energy -->
+            <section class="tab-pane hidden" id="tab-control">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="banner info hidden" id="ctl-disabled"><ion-icon name="lock-closed-outline"></ion-icon><span>Controls are disabled on this dashboard server (<code class="mono">config.js &rarr; snmp.controlsEnabled</code>). Values are read-only.</span></div>
+                    <div class="stats" id="en-stats"></div>
+                    <div class="grid grid-3" id="loads"></div>
+                    <div class="grid grid-2-even">
+                        <div class="card">
+                            <div class="card-head"><h2>Relays</h2></div>
+                            <div class="status-list" id="relays"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><h2>Recent commands</h2><span class="right muted" style="font-size:12px">This site, since the server started</span></div>
+                            <div id="ctl-log"></div>
+                        </div>
+                    </div>
+                    <div class="muted" style="font-size:11.5px">Not yet confirmed on hardware: eFuse status encoding (assumed 1 = on), relay meaning, and energy units (assumed Wh). Check them in Diagnostics and adjust <code class="mono">config.js</code>. An eFuse trip alarm is raised whenever a fault count rises.</div>
+                </div>
+            </section>
+
+            <!-- BATTERY -->
+            <section class="tab-pane hidden" id="tab-battery">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="stats" id="bt-stats"></div>
+                    <div class="grid grid-2">
+                        <div class="card">
+                            <div class="card-head"><h2>Cell voltages</h2><span class="right muted" style="font-size:12px" id="cells-note"></span></div>
+                            <div class="cell-summary" id="cell-summary"></div>
+                            <div class="cells" id="cells"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><h2>Capacity &amp; status</h2></div>
+                            <dl class="kv" id="batt-kv"></dl>
+                        </div>
+                    </div>
+                    <div class="grid grid-2-even">
+                        <div class="card">
+                            <div class="card-head"><h2>Temperature sensors</h2></div>
+                            <div class="thermals" id="ntc"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><h2>BMS protection</h2><span class="right mono muted" id="prot-raw"></span></div>
+                            <div class="bit-list" id="prot-bits"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RECTIFIER -->
+            <section class="tab-pane hidden" id="tab-rectifier">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="stats" id="rc-stats"></div>
+                    <div class="grid grid-3">
+                        <div class="card"><div class="card-head"><h2>Rectifier (AC &rarr; DC)</h2></div><dl class="kv" id="rect-kv"></dl></div>
+                        <div class="card"><div class="card-head"><h2>Thermals</h2></div><div class="thermals" id="rect-temps"></div></div>
+                        <div class="card"><div class="card-head"><h2>Fault flags</h2><span class="right mono muted" id="rect-raw"></span></div><div class="bit-list" id="rect-bits"></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ALARMS -->
+            <section class="tab-pane hidden" id="tab-alarms">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="card">
+                        <div class="card-head"><h2>Active alarms</h2></div>
+                        <div class="alarm-list" id="a-active"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h2>Alarm history</h2><span class="right muted" style="font-size:12px">Since the dashboard server started</span></div>
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead><tr><th>Severity</th><th>Alarm</th><th>Detail</th><th>Raised</th><th>State</th></tr></thead>
+                                <tbody id="a-log"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DIAGNOSTICS -->
+            <section class="tab-pane hidden" id="tab-diagnostics">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="grid grid-2-even">
+                        <div class="card"><div class="card-head"><h2>Polling</h2></div><dl class="kv" id="poll-kv"></dl></div>
+                        <div class="card">
+                            <div class="card-head"><h2>Commissioning a new unit</h2></div>
+                            <p style="color:var(--text-2);font-size:13px;line-height:1.6">
+                                The table below shows every OID exactly as the agent returned it. Compare a few readings
+                                (pack voltage, rectifier output voltage/current, NTC temperatures) against a meter or the
+                                unit's own display. If a value is off by a factor of 10 or 100, adjust the matching divisor in
+                                <code class="mono">config.js &rarr; scale</code> and restart the server.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><h2>Raw SNMP values</h2><span class="right muted" style="font-size:12px" id="raw-count"></span></div>
+                        <div class="table-wrap">
+                            <table class="table diag-table">
+                                <thead><tr><th>Object</th><th>OID</th><th class="num">Raw value</th><th>Updated</th></tr></thead>
+                                <tbody id="raw-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+        <div class="dialog-head"><h3 id="confirm-title">Confirm</h3></div>
+        <div class="dialog-body"><p id="confirm-text"></p></div>
+        <div class="dialog-foot">
+            <button class="btn" type="button" id="confirm-cancel">Cancel</button>
+            <button class="btn btn-primary" type="button" id="confirm-ok">Send</button>
+        </div>
+    </dialog>
+
+    <script src="common.js"></script>
+    <script src="system.js"></script>
+</body>
+
+</html>

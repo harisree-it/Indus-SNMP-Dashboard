@@ -1,0 +1,4 @@
+node_modules/
+.env
+# Per-deployment site lists (seeded from config.js on first run)
+data/*.json

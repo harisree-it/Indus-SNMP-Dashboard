@@ -1,0 +1,1335 @@
+DELTA_ELECTRONICS-RECTIFIER DEFINITIONS ::= BEGIN
+
+IMPORTS
+   MODULE-IDENTITY,enterprises, 
+   IpAddress ,Integer32                            FROM SNMPv2-SMI
+   Ipv6Address                                     FROM IPV6-TC
+   -- Gauge, TimeTicks                             FROM RFC1155-SMI
+   DisplayString                                   FROM SNMPv2-TC
+   OBJECT-TYPE                                     FROM RFC-1212
+   NOTIFICATION-TYPE                               FROM SNMPv2-SMI
+   -- TRAP-TYPE                                    FROM RFC-1215
+   SnmpSecurityModel,
+   SnmpMessageProcessingModel,
+   SnmpSecurityLevel,
+   SnmpAdminString                                 FROM SNMP-FRAMEWORK-MIB
+   KeyChange                                       FROM SNMP-USER-BASED-SM-MIB
+   TEXTUAL-CONVENTION                              FROM SNMPv2-TC
+   MODULE-COMPLIANCE, OBJECT-GROUP , 
+   NOTIFICATION-GROUP                              FROM SNMPv2-CONF;
+
+deltaRectifier MODULE-IDENTITY
+    LAST-UPDATED "202508271000Z"    -- Aug 27, 2025 10:00:00 AM
+    ORGANIZATION "Delta Electronics, Inc"
+    CONTACT-INFO
+                  "www.deltaww.com"
+    DESCRIPTION
+        "The MIB for Rectifier application."
+
+    REVISION  "202508270000Z"      -- Aug 27, 2025 10:00:00 AM
+    DESCRIPTION
+        "Initial version."
+    ::= { pdcMBoard 1 }
+   
+delta                       OBJECT IDENTIFIER ::=  { enterprises 2254 }
+tps                         OBJECT IDENTIFIER ::=  { delta 2 }   -- This value will change
+pdc                         OBJECT IDENTIFIER ::=  { tps 51 }    -- This value will change
+
+pdcMBoard                   OBJECT IDENTIFIER ::=  { pdc 1 }
+
+product                     OBJECT IDENTIFIER ::=  { deltaRectifier 1 }
+setup                       OBJECT IDENTIFIER ::=  { deltaRectifier 2 }
+control                     OBJECT IDENTIFIER ::=  { deltaRectifier 3 }
+bms                         OBJECT IDENTIFIER ::=  { deltaRectifier 7 }
+rectifier                   OBJECT IDENTIFIER ::=  { deltaRectifier 8 }
+mppt                        OBJECT IDENTIFIER ::=  { deltaRectifier 9 }
+poe                         OBJECT IDENTIFIER ::=  { deltaRectifier 10 }
+debugg                      OBJECT IDENTIFIER ::=  { deltaRectifier 11 }
+status                      OBJECT IDENTIFIER ::=  { deltaRectifier 12 }
+snmpUsm                     OBJECT IDENTIFIER ::=  { deltaRectifier 4 }
+snmpTrap                    OBJECT IDENTIFIER ::=  { deltaRectifier 5 }
+snmpv3PvtObject             OBJECT IDENTIFIER ::=  { deltaRectifier 6 }
+
+trapNotifications           OBJECT IDENTIFIER ::=  { deltaRectifier 0 }
+
+deltaMIBConformance         OBJECT IDENTIFIER ::=  { deltaRectifier 8 }
+
+deltaMIBCompliances         OBJECT IDENTIFIER ::= { deltaMIBConformance 1 }
+deltaMIBGroups              OBJECT IDENTIFIER ::= { deltaMIBConformance 2 }
+
+
+
+  -- ON-OFF          ::=   INTEGER { ON(1), OFF(0) }
+
+DELTAUsmAuthPrivProtocol ::=  TEXTUAL-CONVENTION
+       STATUS  current
+       DESCRIPTION
+           "This textual convention enumerates the authentication and privledge 
+        protocol for USM configuration.
+           "
+       SYNTAX    INTEGER
+            {
+                noAuthProtocol(1),
+                hmacMD5Auth(2),
+                hmacSHAAuth(3),
+                noPrivProtocol(4),
+                desPrivProtocol(5),
+                aesPrivProtocol(6)
+            }
+
+
+name    OBJECT-TYPE
+   SYNTAX DisplayString
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "Name of product. e.g. PICDEM.net etc."
+   ::= { product 1 }
+   
+
+version    OBJECT-TYPE
+   SYNTAX DisplayString
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "Version string. e.g. 1.0"
+   ::= { product 2 }
+   
+date    OBJECT-TYPE
+   SYNTAX DisplayString
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "Date of version"
+   ::= { product 3 }
+
+checksum    OBJECT-TYPE
+   SYNTAX DisplayString
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "checksum_value"
+   ::= { product 4 }
+
+ledD5 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION 
+        "D5 LED connected LATA2"
+    ::= { control 1 }
+    
+ledD6 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "D6 LED connected to LATA3"
+    ::= { control 2 }
+   
+pushButton    OBJECT-TYPE
+   SYNTAX INTEGER { closed(0),open(1) }
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "8-bit A/D value"
+   ::= { control 3 }
+
+
+analogPot0    OBJECT-TYPE
+   SYNTAX Integer32
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "10-bit A/D value"
+   ::= { control 4 }
+   
+analogPot1    OBJECT-TYPE
+   SYNTAX Integer32
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "10-bit A/D value"
+   ::= { control 5 }
+   
+   
+lcdDisplay  OBJECT-TYPE
+    SYNTAX  DisplayString (SIZE (0..15))
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Second line of LCD on PICDEM.net board"
+    ::= { control 6 } 
+
+ledD7 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "D7 LED connected to LATA4"
+    ::= { control 7 }
+
+statVar    OBJECT-TYPE
+   SYNTAX DisplayString
+   MAX-ACCESS read-only
+   STATUS current
+   DESCRIPTION
+      "check for static variable"
+   ::= { control 8 }
+
+-- Control over
+
+-- BMS start   
+
+totalVoltageBms OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Total Voltage of BMS, ressolution of 10mV"
+    ::= { bms  1 }
+    
+chargingCurrent OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Total charging Current of BMS, ressolution of 10mA."
+    ::= { bms 2 }
+
+dischargingCurrent OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Total discharge Current of BMS, ressolution of 10mA."
+    ::= { bms 3 }    
+
+remainingCapacity OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Remaining Capacity of the Battery, ressolution of 10mAh"
+    ::= { bms 4 }
+
+totalCapacity OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Total Capacity of the Battery, ressolution of 10mAh"
+    ::= { bms 5 }
+
+dischargeCycle OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "number of discharge cycles, symbol type, unit is 1 time"
+    ::= { bms 6 }    
+
+remainingSoc OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "SOC of the Battery in percentage"
+    ::= { bms 7 }
+
+protectionStatus OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Protection status of the battery"
+    ::= { bms 8 }
+
+cellBalanceStatusFlag1 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 1 , 1 is ON and 0 is OFF "
+    ::= { bms 9 }
+
+cellBalanceStatusFlag2 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 2, 1 is ON and 0 is OFF "
+    ::= { bms 10 }
+
+cellBalanceStatusFlag3 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 3, 1 is ON and 0 is OFF "
+    ::= { bms 11 }
+
+cellBalanceStatusFlag4 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 4, 1 is ON and 0 is OFF "
+    ::= { bms 12 }
+
+cellBalanceStatusFlag5 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 5, 1 is ON and 0 is OFF "
+    ::= { bms 13 }
+
+cellBalanceStatusFlag6 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 6, 1 is ON and 0 is OFF "
+    ::= { bms 14 }
+
+cellBalanceStatusFlag7 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 7, 1 is ON and 0 is OFF "
+    ::= { bms 15 }
+
+cellBalanceStatusFlag8 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 8, 1 is ON and 0 is OFF "
+    ::= { bms 16 }
+
+cellBalanceStatusFlag9 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 9, 1 is ON and 0 is OFF "
+    ::= { bms 17 }
+
+cellBalanceStatusFlag10 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 10, 1 is ON and 0 is OFF "
+    ::= { bms 18 }
+
+cellBalanceStatusFlag11 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 11, 1 is ON and 0 is OFF "
+    ::= { bms 19 }
+
+cellBalanceStatusFlag12 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 12, 1 is ON and 0 is OFF "
+    ::= { bms 20 }
+
+cellBalanceStatusFlag13 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell 13, 1 is ON and 0 is OFF "
+    ::= { bms 21 }
+
+cellBalanceStatusFlag14 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag  of cell  14, 1 is ON and 0 is OFF "
+    ::= { bms 22 }
+
+cellBalanceStatusFlag15 OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Balance status flag of cell 15, 1 is ON and 0 is OFF "
+    ::= { bms 23 }
+
+mosfetControlStatus OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "MOS indication status, bit0 means charging MOS, bit1 means discharging MOS, 0 means MOS is closed and 1 means MOS is open "
+    ::= { bms 24 }
+
+productionDate OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Production date of Battery"
+    ::= { bms 25 }
+
+softwareVersion OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Software version number"
+    ::= { bms 26 }
+
+numberOfBattery OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Number of battery strings"
+    ::= { bms 27 }
+
+numberOfNtc OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Number of NTC probes"
+    ::= { bms 28 }
+
+temperatureValueNtc1 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Temperature value of NTC 1, unit 0.1K"
+    ::= { bms 29 }
+
+temperatureValueNtc2 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Temperature value of NTC 2, unit 0.1K"
+    ::= { bms 30 }
+
+temperatureValueNtc3 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Temperature value of NTC 3, unit 0.1K"
+    ::= { bms 31 }
+
+temperatureValueNtc4 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Temperature value of NTC 4, unit 0.1K"
+    ::= { bms 32 }
+
+temperatureValueNtc5 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Temperature value of NTC 5, unit 0.1K"
+    ::= { bms 33 }
+
+voltageValueCell1 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 1, unti is mV"
+    ::= { bms 34 }
+
+voltageValueCell2 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 2, unti is mV"
+    ::= { bms 35 }
+
+voltageValueCell3 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 3, unti is mV"
+    ::= { bms 36 }
+
+voltageValueCell4 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 4, unti is mV"
+    ::= { bms 37 }
+
+voltageValueCell5 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 5, unti is mV"
+    ::= { bms 38 }
+
+voltageValueCell6 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 6, unti is mV"
+    ::= { bms 39 }
+
+voltageValueCell7 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 7, unti is mV"
+    ::= { bms 40 }
+
+voltageValueCell8 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 8, unti is mV"
+    ::= { bms 41 }
+
+voltageValueCell9 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 9, unti is mV"
+    ::= { bms 42 }
+
+voltageValueCell10 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 10, unti is mV"
+    ::= { bms 43 }
+
+voltageValueCell11 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 11, unti is mV"
+    ::= { bms 44 }
+
+voltageValueCell12 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 12, unti is mV"
+    ::= { bms 45 }
+
+voltageValueCell13 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 13, unti is mV"
+    ::= { bms 46 }
+
+voltageValueCell14 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 14, unti is mV"
+    ::= { bms 47 }
+
+voltageValueCell15 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Voltage value of CELL 15, unti is mV"
+    ::= { bms 48 }
+
+-- BMS over
+
+-- Rectifier start
+
+dcOpVoltageRect OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "DC output voltage of the rectifier"
+    ::= { rectifier 1 }
+
+dcOpCurRect OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "DC output current of the rectifier"
+    ::= { rectifier 2 }
+
+acIpVoltageRect OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "AC input voltage of the rectifier"
+    ::= { rectifier 3 }
+
+busVoltage OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Bus voltage of the rectifier"
+    ::= { rectifier 4 }
+
+outputPowerRect OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Output Power of the rectifier"
+    ::= { rectifier 5 }
+
+ambientTempRect OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Ambient Temperature of Rectifier"
+    ::= { rectifier 6 }
+
+srTemp OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "SR Temperature of rectifier"
+    ::= { rectifier 7 }
+
+llcTemp OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "LLC Temperature of rectifier"
+    ::= { rectifier 8 }    
+    
+pfcTemp OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "PFC Temperature of Rectifier"
+    ::= { rectifier 9 }
+
+rectifierOnStatus OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Rectifier ON Status"
+    ::= { rectifier 10 }
+
+rectifierAlarmStatus OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Alarm status of therectifier"
+    ::= { rectifier 11 }    
+
+--Rectifier over
+
+--MPPT start
+
+dcOpVoltageMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "DC output voltage of the MPPT"
+    ::= { mppt 1 }
+
+dcOpCurMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "DC output current of the MPPT"
+    ::= { mppt 2 }
+
+acIpVoltageMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "AC input voltage of the MPPT"
+    ::= { mppt 3 }
+
+acIpCurMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "AC input current of the MPPT"
+    ::= { mppt 4 }
+
+mpptLimitPower OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION 
+        "Output Power Limit of the MPPT"
+    ::= { mppt 5 }
+
+outputPowerMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Output Power of the MPPT"
+    ::= { mppt 6 }
+
+ambientTempMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Ambient Temperature of MPPT"
+    ::= { mppt 7 }
+
+srTempMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "SR Temperature of MPPT"
+    ::= { mppt 8 }
+
+llcTempMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "LLC Temperature of MPPT"
+    ::= { mppt 9 }    
+    
+pfcTempMppt OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "PFC Temperature of MPPT"
+    ::= { mppt 10 }
+
+mpptOnStatus OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "MPPT ON Status"
+    ::= { mppt 11 }
+
+mpptAlarmStatus OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Alarm status of the MPPT"
+    ::= { mppt 12 } 
+
+--MPPT over
+--POE start
+
+--POE over
+
+--debugg start
+reserved1 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "reserved1"
+    ::= { debugg 1 }
+
+reserved2 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 2"
+    ::= { debugg 2 }
+
+reserved3 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 3"
+    ::= { debugg 3 }
+
+reserved4 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 4"
+    ::= { debugg 4 }
+
+reserved5 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 5"
+    ::= { debugg 5 }
+
+reserved6 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 6"
+    ::= { debugg 6 }
+
+reserved7 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 7"
+    ::= { debugg 7 }
+
+reserved8 OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Reserved 8"
+    ::= { debugg 8 }
+
+--debugg over
+
+--Status start
+bmsLive OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "BMS live"
+    ::= { status 1 }
+
+rectifierLive OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "Rectifier live"
+    ::= { status 2 }
+
+mpptLive OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "MPPT live"
+    ::= { status 3 }
+
+poeLive OBJECT-TYPE
+    SYNTAX INTEGER { off(0), on(1) }
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION 
+        "POE live"
+    ::= { status 4 }
+
+--Status over
+
+--IPV4 Trap table start 
+
+ipv4TrapTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF IPv4TrapEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Trap table for IPv4 Destination address configuration"
+    ::= { setup 1 }        
+    
+ipv4TrapEntry OBJECT-TYPE
+    SYNTAX IPv4TrapEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Single trap entry containing trap receiver info."
+    INDEX { ipv4TrapReceiverNumber }
+     ::= { ipv4TrapTable 1 }
+     
+IPv4TrapEntry ::=
+    SEQUENCE {
+        ipv4TrapReceiverNumber
+            Integer32,
+        ipv4TrapEnabled
+            Integer32,
+        ipv4TrapReceiverIPAddress
+            IpAddress,
+        ipv4TrapCommunity
+            DisplayString
+    }            
+    
+ipv4TrapReceiverNumber  OBJECT-TYPE
+
+    SYNTAX Integer32(0.. 4)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Index of trap receiver"
+    ::= { ipv4TrapEntry 1 }
+    
+ipv4TrapEnabled OBJECT-TYPE
+    SYNTAX INTEGER { no(0),yes(1) }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Indicates if this trap entry is enabled or not."
+    ::= { ipv4TrapEntry 2 }
+
+
+ipv4TrapReceiverIPAddress OBJECT-TYPE
+    SYNTAX  IpAddress
+    MAX-ACCESS  read-write
+    STATUS current
+    DESCRIPTION
+        "Trap receiver IP address"
+    ::= { ipv4TrapEntry 3 }
+
+ipv4TrapCommunity OBJECT-TYPE
+    SYNTAX  DisplayString (SIZE (0..7))
+    MAX-ACCESS  read-write
+    STATUS current
+    DESCRIPTION
+        "Trap community to be used by agent to send trap"
+    ::= { ipv4TrapEntry 4 }
+
+--IPV4 Trap table end
+
+--IPV6 Trap table start
+
+ipv6TrapTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF IPv6TrapEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Trap table for IPv6 address configuration"
+    ::= { setup 2 }        
+    
+ipv6TrapEntry OBJECT-TYPE
+    SYNTAX IPv6TrapEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Single trap entry containing trap receiver info."
+    INDEX { ipv6TrapReceiverNumber }
+     ::= { ipv6TrapTable 1 }
+     
+IPv6TrapEntry ::=
+    SEQUENCE {
+        ipv6TrapReceiverNumber
+            Integer32,
+        ipv6TrapEnabled
+            Integer32,
+        ipv6TrapReceiverIPv6Address
+            Ipv6Address,
+        ipv6TrapCommunity
+            DisplayString
+    }            
+    
+ipv6TrapReceiverNumber  OBJECT-TYPE
+
+    SYNTAX Integer32(0.. 4)
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Index of trap receiver"
+    ::= { ipv6TrapEntry 1 }
+    
+ipv6TrapEnabled OBJECT-TYPE
+    SYNTAX INTEGER { no(0),yes(1) }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Indicates if this trap entry is enabled or not."
+    ::= { ipv6TrapEntry 2 }
+
+
+ipv6TrapReceiverIPv6Address OBJECT-TYPE
+    SYNTAX  Ipv6Address
+    MAX-ACCESS  read-write
+    STATUS current
+    DESCRIPTION
+        "Trap receiver IPv6 address"
+    ::= { ipv6TrapEntry 3 }
+
+ipv6TrapCommunity OBJECT-TYPE
+    SYNTAX  DisplayString (SIZE (0..7))
+    MAX-ACCESS  read-write
+    STATUS current
+    DESCRIPTION
+        "Trap community to be used by agent to send trap"
+    ::= { ipv6TrapEntry 4 }
+
+--IPV6 Trap table end
+
+--USM table start
+
+deltaUsmUserTable     OBJECT-TYPE
+    SYNTAX       SEQUENCE OF DeltaUsmUserEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION "This table is used to configure delta USM.
+             To get the SNMPv3 access, user need to configure security 
+             name,authentication,auth password,priv protocol and priv 
+                 password.
+             
+            "
+    ::= { snmpUsm 1 }
+
+deltaUsmUserEntry     OBJECT-TYPE
+    SYNTAX       DeltaUsmUserEntry
+    MAX-ACCESS    not-accessible
+    STATUS       current
+    DESCRIPTION     "User security configurations for USM.
+                "
+    INDEX       { usmIndex }
+    ::= { deltaUsmUserTable 1 }
+
+DeltaUsmUserEntry   ::= SEQUENCE {
+        usmIndex        Integer32,
+        usmSecurityName SnmpAdminString,
+          usmAuthProtocol     DELTAUsmAuthPrivProtocol,
+          usmAuthKey        KeyChange,
+          usmPrivProtocol     DELTAUsmAuthPrivProtocol,
+          usmPrivKey        KeyChange
+    }
+
+usmIndex        OBJECT-TYPE
+    SYNTAX         Integer32 (1..3)     
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION  "Usm configuration index. "
+    ::= { deltaUsmUserEntry 1 }
+
+
+usmSecurityName  OBJECT-TYPE
+    SYNTAX       SnmpAdminString
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION "A human readable string representing the user in
+                 Security Model independent format.
+
+                 The default transformation of the User-based Security
+                 Model dependent security ID to the securityName and
+                 vice versa is the identity function so that the
+                 securityName is the same as the userName.
+                "
+    ::= { deltaUsmUserEntry 2 }
+
+
+usmAuthProtocol OBJECT-TYPE
+    SYNTAX       DELTAUsmAuthPrivProtocol
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION  "Authentication support to the SNMPv3.
+             If usmAuthProtocol == NoAuthProtocol, then SNMPv3 Stack does 
+             not support/requires authentication.
+             If usmAuthProtocol == HMACMD5Auth , supports MD5 auth
+             If usmAuthProtocol == HMACSHAAuth, supports SHA Auth   
+                 If a set operation tries to set value as
+                 NoAuthProtocol while the usmPrivProtocol value
+                 for the same userName is not equal to NoPrivProtocol,
+                 then an 'inconsistentValue' error must be returned.
+                 This implies that SNMP command generator (SNMP Manager)
+             application must first ensure that the usmPrivProtocol is set
+                 to NoPrivProtocol value before it can set
+                 the usmAuthProtocol value to NoAuthProtocol.
+                "
+    ::= { deltaUsmUserEntry 3 }
+
+usmAuthKey OBJECT-TYPE
+    SYNTAX       KeyChange   -- typically (SIZE (0 | 32)) for HMACMD5
+                             -- typically (SIZE (0 | 40)) for HMACSHA
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION  "This object in the MIB is associated to usmAuthProtocol.
+            A secret authentication key is required to establish a secure connection 
+            between snmp agent and manager.
+            "           
+    ::= { deltaUsmUserEntry 4 }
+
+
+usmPrivProtocol OBJECT-TYPE
+    SYNTAX       DELTAUsmAuthPrivProtocol
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION " A privacy protocol to provide encryption and decryption
+            of SNMPv3 pdu. 
+                "
+    ::= { deltaUsmUserEntry 5 }
+
+usmPrivKey OBJECT-TYPE
+    SYNTAX       KeyChange  -- typically (SIZE (0 | 32)) for DES
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION "This object in the MIB is associated to usmPrivProtocol.
+            A secret privacy key is required to establish a secure connection 
+            between snmp agent and manager.
+
+                "
+    ::= { deltaUsmUserEntry 6 }
+
+--USM table end
+
+-- Target MIB 
+
+deltaTargetTable OBJECT-TYPE
+       SYNTAX      SEQUENCE OF DeltaTargetEntry
+       MAX-ACCESS      not-accessible
+       STATUS      current
+       DESCRIPTION
+           "A table for SNMP target information. This information is required for
+           generation of SNMP trap notifications."
+       ::= { snmpTrap 1 }
+
+deltaTargetEntry OBJECT-TYPE
+       SYNTAX      DeltaTargetEntry
+       MAX-ACCESS      not-accessible
+       STATUS      current
+       DESCRIPTION
+           "A set of SNMP target information.
+           "
+       INDEX { snmpTargetIndex }
+       ::= { deltaTargetTable 1 }
+
+DeltaTargetEntry ::= SEQUENCE {
+       snmpTargetIndex          Integer32,
+       snmpTargetMPModel        SnmpMessageProcessingModel,
+       snmpTargetSecurityModel  SnmpSecurityModel,
+       snmpTargetSecurityName   SnmpAdminString,
+       snmpTargetSecurityLevel  SnmpSecurityLevel
+   }
+
+snmpTargetIndex OBJECT-TYPE
+       SYNTAX      Integer32(1..8)
+       MAX-ACCESS      not-accessible
+       STATUS      current
+       DESCRIPTION
+           "The locally arbitrary, but unique identifier associated
+            with DeltaTargetEntry."
+       ::= { deltaTargetEntry 1 }
+
+snmpTargetMPModel OBJECT-TYPE
+       SYNTAX      SnmpMessageProcessingModel
+       MAX-ACCESS      read-write
+       STATUS      current
+       DESCRIPTION
+           "The Message Processing Model to be used when generating/processing
+            SNMP messages using this entry."
+       ::= { deltaTargetEntry 2 }
+
+snmpTargetSecurityModel OBJECT-TYPE
+       SYNTAX      SnmpSecurityModel (1..2147483647)
+       MAX-ACCESS      read-write
+       STATUS      current
+       DESCRIPTION
+           "The Security Model to be used while generating SNMP
+             messages using this entry.  An implementation may
+             choose to return an inconsistentValue error if an
+             attempt is made to set this variable to a value
+             for a security model which the implementation does
+             not support."
+       ::= { deltaTargetEntry 3 }
+
+snmpTargetSecurityName OBJECT-TYPE
+       SYNTAX      SnmpAdminString
+       MAX-ACCESS      read-write
+       STATUS      current
+       DESCRIPTION
+           "The securityName which identifies the Principal on
+            whose behalf SNMP messages will be generated.
+        "
+       ::= { deltaTargetEntry 4 }
+
+snmpTargetSecurityLevel OBJECT-TYPE
+       SYNTAX      SnmpSecurityLevel
+       MAX-ACCESS      read-write
+       STATUS      current
+       DESCRIPTION
+           "The Level of Security to be used when generating
+            SNMP messages using this entry."
+       ::= { deltaTargetEntry 5 }
+
+   
+snmp-demo-trap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "SMIV2 Trap notification information for the SNMP Manager. 
+        The objects used in the demo trap notification are 
+        analogPot0,pushButton,ledD5 and trapCommunity. User should modify this object 
+        information as per the requirements. These object should 
+        have been defined as part of the MIB.
+        "
+    ::= {trapNotifications 1}
+
+bmsSocLowTrap NOTIFICATION-TYPE
+    OBJECTS { remainingSoc,totalVoltageBms,chargingCurrent,dischargingCurrent}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when SOC of battery reaches below 35%.
+        "
+    ::= {trapNotifications 2}
+
+bmsFaultTrap NOTIFICATION-TYPE
+    OBJECTS { protectionStatus,remainingSoc,totalVoltageBms,chargingCurrent,dischargingCurrent}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when fault is detected in BMS.
+        "
+    ::= {trapNotifications 3}
+
+bmsCommunicationFailureTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when communication with BMS is lost.
+        "
+    ::= {trapNotifications 4}
+
+bmsDischargeCycleThresholdTrap NOTIFICATION-TYPE
+    OBJECTS { dischargeCycle,remainingSoc,totalVoltageBms,chargingCurrent,dischargingCurrent}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when discharge cycle of BMS is above the threshold limit.
+        "
+    ::= {trapNotifications 5}
+
+rectifierFaultTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when fault is detected in Rectifier.
+        "
+    ::= {trapNotifications 6}
+
+rectifierCommunicationFailureTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when communication with Rectifier is lost.
+        "
+    ::= {trapNotifications 7}
+
+mpptFaultTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when fault is detected in MPPT.
+        "
+    ::= {trapNotifications 8}
+
+mpptCommunicationFailureTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when communication with MPPT is lost.
+        "
+    ::= {trapNotifications 9}
+
+poeFaultTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when fault is detected in POE.
+        "
+    ::= {trapNotifications 10}
+
+poeCommunicationFailureTrap NOTIFICATION-TYPE
+    OBJECTS { analogPot0,pushButton,ledD5,ipv4TrapCommunity}
+    STATUS current
+    DESCRIPTION 
+        "This trap is generated when communication with POE is lost.
+        "
+    ::= {trapNotifications 11}
+
+deltaDemoCompliance1 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+            "This group is for SNMP demo applications."
+    MODULE  -- this module
+        MANDATORY-GROUPS { deltaDemoGroup1, deltaDemoGroup2, deltaDemoGroup4}
+
+    ::= { deltaMIBCompliances 1 }
+    
+deltaDemoCompliance2 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+            "This group is for trap demo applications."
+    MODULE  -- this module
+        MANDATORY-GROUPS {deltaDemoGroup3}
+
+    ::= { deltaMIBCompliances 2 }   
+            
+deltaDemoGroup1 OBJECT-GROUP
+    OBJECTS { name, version,date,ledD5,ledD6,pushButton,ledD7,checksum,
+              analogPot0,analogPot1,lcdDisplay,
+              ipv4TrapEnabled,ipv4TrapReceiverIPAddress,ipv4TrapCommunity}
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects providing basic product
+            and control of a product."
+    ::= { deltaMIBGroups 1 }    
+
+deltaDemoGroup2 OBJECT-GROUP
+    OBJECTS { usmSecurityName,usmAuthProtocol,usmAuthKey,
+             usmPrivProtocol,usmPrivKey,snmpTargetMPModel,
+             snmpTargetSecurityModel,snmpTargetSecurityName,
+             snmpTargetSecurityLevel}
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects are used for SNMPV3 Configuration."
+    ::= { deltaMIBGroups 2 }    
+
+deltaDemoGroup3 NOTIFICATION-GROUP
+    NOTIFICATIONS  {snmp-demo-trap}
+    STATUS  current
+    DESCRIPTION
+            "SNMP Trap Notification object."
+    ::= { deltaMIBGroups 3 }
+
+deltaDemoGroup4 OBJECT-GROUP
+    OBJECTS { ipv6TrapEnabled,ipv6TrapReceiverIPv6Address,ipv6TrapCommunity}
+    STATUS  current
+    DESCRIPTION
+            "A collection of objects providing basic product
+            and control of a product."
+    ::= { deltaMIBGroups 4 }    
+
+END   

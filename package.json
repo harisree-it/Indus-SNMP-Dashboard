@@ -1,0 +1,22 @@
+{
+  "name": "mini-smps-snmp-dashboard",
+  "version": "1.0.0",
+  "description": "Fleet monitoring dashboard for the Mini SMPS (300 W rectifier + 15 Ah battery) over SNMP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node server.js --demo",
+    "mock": "node tools/mock-agent.js",
+    "test:connection": "node tools/test-connection.js"
+  },
+  "keywords": ["snmp", "smps", "rectifier", "bms", "dashboard"],
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "net-snmp": "^3.26.1"
+  }
+}

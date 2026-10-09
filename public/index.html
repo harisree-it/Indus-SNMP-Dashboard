@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All sites · Mini SMPS</title>
+    <script>
+        try {
+            document.documentElement.dataset.theme = localStorage.getItem('smps.theme') === 'dark' ? 'dark' : 'light';
+            if (!sessionStorage.getItem('smps.token') && !localStorage.getItem('smps.token')) location.replace('login.html?next=index.html');
+        } catch (e) { }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body>
+    <header class="appbar">
+        <a class="brand" href="index.html"><span class="brand-name" data-brand="company">Power Smart</span><span class="brand-sub">Telecom SMPS</span></a>
+        <div class="appbar-info">
+            <span><span data-brand="product">Mini SMPS</span> fleet</span>
+            <span>SNMP v2c</span>
+            <span id="h-update">Last Update: --:--:--</span>
+        </div>
+        <div class="appbar-actions">
+            <span class="conn wait" id="h-conn"><span class="dot"></span><span id="h-conn-t">Loading</span></span>
+            <button class="btn btn-primary" id="add-site"><ion-icon name="add"></ion-icon>Add Site</button>
+            <button class="icon-btn" data-theme-toggle title="Toggle light/dark theme" aria-label="Toggle light/dark theme"><ion-icon name="moon-outline"></ion-icon></button>
+            <button class="icon-btn" data-logout title="Log out" aria-label="Log out"><ion-icon name="log-out-outline"></ion-icon></button>
+        </div>
+    </header>
+
+    <div class="shell">
+        <nav class="sidenav" aria-label="Main">
+            <a class="nav-item active" href="#top"><ion-icon name="home-outline"></ion-icon>Overview</a>
+            <a class="nav-item" href="#sites"><ion-icon name="server-outline"></ion-icon>Sites</a>
+            <a class="nav-item" href="#alarms"><ion-icon name="warning-outline"></ion-icon>Alarms<span class="count hidden" id="nav-alarm-count"></span></a>
+            <div class="side-status" id="side-status">--</div>
+        </nav>
+
+        <main class="content" id="top">
+            <div class="page-title">
+                <h1>All sites</h1>
+                <span class="sub" id="page-sub"></span>
+                <div style="margin-left:auto;position:relative;width:min(300px,100%)">
+                    <ion-icon name="search-outline" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)"></ion-icon>
+                    <input class="input" id="search" type="search" placeholder="Search sites or IP" aria-label="Search sites" style="padding-left:32px">
+                </div>
+            </div>
+
+            <div class="banner info hidden" id="demo-banner">
+                <ion-icon name="flask-outline"></ion-icon>
+                <span>Demo mode: these sites are simulated Mini SMPS agents. Run <code class="mono">npm start</code> to monitor real units.</span>
+            </div>
+
+            <section class="stats" id="kpi-stats" aria-label="Fleet summary"></section>
+
+            <section class="grid grid-2">
+                <div class="card map-card">
+                    <div id="map" aria-label="Site map"></div>
+                    <div class="map-legend" aria-label="Map legend">
+                        <span><i class="map-pin ok"></i>Normal</span>
+                        <span><i class="map-pin minor"></i>Minor</span>
+                        <span><i class="map-pin major"></i>Major</span>
+                        <span><i class="map-pin critical"></i>Critical</span>
+                        <span><i class="map-pin offline"></i>Offline</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><h2>Fleet load</h2></div>
+                    <div class="hero"><span id="p-total">--</span><span class="unit">W</span></div>
+                    <div class="hero-sub" id="p-sub">&nbsp;</div>
+
+                    <div class="card-head" style="margin: 18px 0 8px;"><h2>Load by site</h2><span class="muted" style="font-size:12px;margin-left:auto">scale 0 to <span id="p-rated">300</span> W rating</span></div>
+                    <div class="bars" id="p-bars"></div>
+
+                    <div class="stat-list">
+                        <div><div class="k">Average SOC</div><div class="v" id="p-avgsoc">--</div></div>
+                        <div><div class="k">Lowest SOC</div><div class="v" id="p-minsoc">--</div></div>
+                        <div><div class="k">Shortest backup</div><div class="v" id="p-backup">--</div></div>
+                        <div><div class="k">AC mains available</div><div class="v" id="p-mains">--</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" id="sites">
+                <div class="card-head">
+                    <h2>Sites</h2>
+                    <span class="right muted" id="sites-count" style="font-size:12px"></span>
+                </div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Site</th>
+                                <th>Status</th>
+                                <th>Power</th>
+                                <th>Battery</th>
+                                <th class="num">Load</th>
+                                <th class="num">Backup</th>
+                                <th>Alarms</th>
+                                <th>Last seen</th>
+                                <th><span class="hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sites-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card" id="alarms">
+                <div class="card-head">
+                    <h2>Alarms</h2>
+                    <div class="range" role="tablist" aria-label="Alarm view">
+                        <button class="active" data-alarm-view="active" role="tab" aria-selected="true" style="width:auto;padding:0 12px">Active</button>
+                        <button data-alarm-view="log" role="tab" aria-selected="false" style="width:auto;padding:0 12px">History</button>
+                    </div>
+                    <span class="right muted" style="font-size:12px">Since the dashboard server started</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Severity</th>
+                                <th>Site</th>
+                                <th>Alarm</th>
+                                <th>Detail</th>
+                                <th>Raised</th>
+                                <th>State</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alarms-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <div class="footer-bar"><span>&copy; 2026 <span data-brand="company">Power Smart</span></span></div>
+        </main>
+    </div>
+
+    <dialog class="dialog" id="site-dialog" aria-labelledby="site-dialog-title">
+        <form method="dialog" id="site-form" novalidate>
+            <div class="dialog-head">
+                <h3 id="site-dialog-title">Add site</h3>
+                <button class="icon-btn" type="button" data-close aria-label="Close"><ion-icon name="close"></ion-icon></button>
+            </div>
+            <div class="dialog-body">
+                <div class="field">
+                    <label for="f-name">Site name</label>
+                    <input class="input" id="f-name" name="name" maxlength="60" required placeholder="e.g. Chennai - Site 101">
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="f-ip">IP address / hostname</label>
+                        <input class="input mono" id="f-ip" name="ip" required placeholder="192.168.100.12">
+                    </div>
+                    <div class="field">
+                        <label for="f-port">SNMP port</label>
+                        <input class="input mono" id="f-port" name="port" inputmode="numeric" placeholder="161">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="f-community">Read community</label>
+                        <input class="input mono" id="f-community" name="community" autocomplete="off" placeholder="read (default)">
+                    </div>
+                    <div class="field">
+                        <label for="f-wcommunity">Write community</label>
+                        <input class="input mono" id="f-wcommunity" name="writeCommunity" autocomplete="off" placeholder="write (default)">
+                    </div>
+                </div>
+                <small class="muted" id="f-community-hint" style="margin-top:-8px">Leave blank to use the defaults from config.js. The write community is only used for relay and eFuse commands.</small>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="f-lat">Latitude</label>
+                        <input class="input mono" id="f-lat" name="lat" inputmode="decimal" placeholder="13.0827">
+                    </div>
+                    <div class="field">
+                        <label for="f-lng">Longitude</label>
+                        <input class="input mono" id="f-lng" name="lng" inputmode="decimal" placeholder="80.2707">
+                    </div>
+                </div>
+                <div class="form-error hidden" id="site-error" role="alert"></div>
+            </div>
+            <div class="dialog-foot">
+                <button class="btn" type="button" data-close>Cancel</button>
+                <button class="btn btn-primary" type="submit" id="site-save">Add site</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+        <div class="dialog-head">
+            <h3 id="confirm-title">Remove site?</h3>
+        </div>
+        <div class="dialog-body"><p id="confirm-text"></p></div>
+        <div class="dialog-foot">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn btn-danger" type="button" id="confirm-ok"><ion-icon name="trash-outline"></ion-icon>Remove</button>
+        </div>
+    </dialog>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="common.js"></script>
+    <script src="fleet.js"></script>
+</body>
+
+</html>

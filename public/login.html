@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login · Mini SMPS</title>
+    <script>try { document.documentElement.dataset.theme = localStorage.getItem('smps.theme') === 'dark' ? 'dark' : 'light'; } catch (e) { }</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        body { overflow: hidden; }
+        .login { display: flex; height: 100vh; }
+        .login-panel {
+            flex: 0 0 440px; max-width: 100%; background: var(--card); border-right: 1px solid var(--border);
+            padding: 40px 48px; display: flex; flex-direction: column; z-index: 2;
+            box-shadow: 12px 0 40px rgba(0, 0, 0, 0.25);
+        }
+        .login-brand { margin-bottom: 72px; }
+        .login-panel h1 { font-size: 28px; margin-bottom: 6px; }
+        .login-panel p.lead { color: var(--text-2); margin-bottom: 28px; }
+        .login-panel form { display: flex; flex-direction: column; gap: 16px; }
+        .login-panel .input { height: 42px; font-size: 14px; }
+        .remember { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; }
+        .remember input { accent-color: var(--accent); }
+        .login-panel .btn-primary { height: 42px; justify-content: center; font-size: 14px; }
+        .login-foot { margin-top: auto; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+        .demo-hint { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+        .globe-panel {
+            flex: 1; position: relative; overflow: hidden;
+            background: radial-gradient(circle at 60% 50%, #13203a 0%, #0B0F1A 60%);
+        }
+        #globe { position: absolute; inset: 0; }
+        .globe-caption { position: absolute; left: 40px; bottom: 36px; color: #c7cdd8; max-width: 380px; }
+        .globe-caption strong { display: block; font-size: 18px; color: #fff; margin-bottom: 4px; }
+        @media (max-width: 860px) { .globe-panel { display: none; } .login-panel { flex: 1; padding: 32px 24px; } }
+    </style>
+</head>
+
+<body>
+    <div class="login">
+        <div class="login-panel">
+            <div class="login-brand brand"><span class="brand-name" data-brand="company">Power Smart</span><span class="brand-sub">Telecom SMPS</span></div>
+
+            <h1>Sign in</h1>
+            <p class="lead">Monitor every <span data-brand="product">Mini SMPS</span> site - rectifier, battery and alarms - from one place.</p>
+
+            <form id="login-form" autocomplete="on">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input class="input" id="username" name="username" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+                </div>
+                <label class="remember"><input type="checkbox" id="remember"> Keep me signed in on this computer</label>
+                <button class="btn btn-primary" type="submit" id="login-btn">Sign in</button>
+                <div class="form-error hidden" id="login-error" role="alert"></div>
+            </form>
+            <div class="demo-hint hidden" id="demo-hint">Demo mode - simulated sites are running.</div>
+
+            <div class="login-foot">
+                <span>&copy; <span data-brand="company">Power Smart</span></span>
+                <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle light/dark theme"><ion-icon name="moon-outline"></ion-icon></button>
+            </div>
+        </div>
+
+        <div class="globe-panel" aria-hidden="true">
+            <div id="globe"></div>
+            <div class="globe-caption">
+                <strong><span data-brand="product">Mini SMPS</span> fleet</strong>
+                300 W rectifier · 15 Ah Li-ion battery · SNMP v2c
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script src="https://unpkg.com/globe.gl"></script>
+    <script src="login.js"></script>
+</body>
+
+</html>
